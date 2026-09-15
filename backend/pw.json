@@ -1,0 +1,7 @@
+{
+    "admin_password": "admin123",
+    "faculty_password": "faculty123",
+    "student_password": "student123",
+    "default_password": "password"
+    
+}
