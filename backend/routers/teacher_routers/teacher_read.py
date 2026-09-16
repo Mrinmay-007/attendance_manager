@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -82,17 +84,82 @@ def view_marked_attendance(
         db.query(models.Attendance)
         .join(models.Student, models.Attendance.student_id == models.Student.student_id)
         .join(models.User, models.Student.user_id == models.User.user_id)
+        .join(models.SubjectTeacher, models.Attendance.st_id == models.SubjectTeacher.st_id)
+        .join(models.Subject, models.SubjectTeacher.subject_id == models.Subject.subject_id)
+        .join(models.Department, models.SubjectTeacher.dept_id == models.Department.dept_id)
         .filter(models.Attendance.st_id.in_(st_ids))
+        .filter(
+            models.Attendance.marked_at > datetime.utcnow() - timedelta(hours=1)
+        )
     )
     if st_id:
         q = q.filter(models.Attendance.st_id == st_id)
-    records = q.all()
+    records = q.order_by(
+        models.Attendance.date.desc(),
+        models.Student.c_roll_no.asc(),
+        models.Student.roll_no.asc(),
+    ).all()
     return [
         {
             **{column.name: getattr(record, column.name) for column in models.Attendance.__table__.columns},
             "student_name": record.student.user.name,
             "roll_no": record.student.roll_no,
             "c_roll_no": record.student.c_roll_no,
+            "marked_at": record.marked_at,
+            "dept_name": record.subject_teacher.subject.department.dept_name,
+            "dept_code": record.subject_teacher.subject.department.dept_code,
+            "subject_name": record.subject_teacher.subject.subject_name,
+            "subject_code": record.subject_teacher.subject.subject_code,
+        }
+        for record in records
+    ]
+
+
+@router.get("/attendance/history", response_model=list[schemas.AttendanceOut])
+def attendance_history(
+    date: str | None = None,
+    dept_code: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    teacher = _get_teacher(db, current_user)
+    st_ids = [
+        st.st_id
+        for st in db.query(models.SubjectTeacher)
+        .filter(models.SubjectTeacher.teacher_id == teacher.teacher_id)
+        .all()
+    ]
+    q = (
+        db.query(models.Attendance)
+        .join(models.Student, models.Attendance.student_id == models.Student.student_id)
+        .join(models.SubjectTeacher, models.Attendance.st_id == models.SubjectTeacher.st_id)
+        .join(models.Subject, models.SubjectTeacher.subject_id == models.Subject.subject_id)
+        .join(models.Department, models.SubjectTeacher.dept_id == models.Department.dept_id)
+        .filter(
+            models.Attendance.st_id.in_(st_ids),
+            (models.Attendance.marked_at.is_(None))
+            | (models.Attendance.marked_at <= datetime.utcnow() - timedelta(hours=1)),
+        )
+    )
+    if date:
+        q = q.filter(models.Attendance.date == date)
+    if dept_code:
+        q = q.filter(models.Department.dept_code == dept_code)
+    records = q.order_by(
+        models.Attendance.date.desc(),
+        models.Student.c_roll_no.asc(),
+        models.Student.roll_no.asc(),
+    ).all()
+    return [
+        {
+            **{column.name: getattr(record, column.name) for column in models.Attendance.__table__.columns},
+            "student_name": record.student.user.name,
+            "roll_no": record.student.roll_no,
+            "c_roll_no": record.student.c_roll_no,
+            "dept_name": record.subject_teacher.subject.department.dept_name,
+            "dept_code": record.subject_teacher.subject.department.dept_code,
+            "subject_name": record.subject_teacher.subject.subject_name,
+            "subject_code": record.subject_teacher.subject.subject_code,
         }
         for record in records
     ]

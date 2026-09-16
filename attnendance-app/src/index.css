@@ -50,6 +50,13 @@ button { cursor: pointer; }
 .attendance-present.selected { background: #22a968; border-color: #22a968; }
 .attendance-absent.selected { background: #d94b56; border-color: #d94b56; }
 .attendance-late.selected { background: #d99a19; border-color: #d99a19; }
+.attendance-bulk-actions { margin: 12px 0; flex-wrap: wrap; }
+.status-badge { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+.status-present { color: #087443; background: #d8f5e6; }
+.status-absent { color: #a52835; background: #ffe0e2; }
+.status-late { color: #8a5a00; background: #fff0c7; }
+.attendance-edit-button { width: 32px; height: 32px; padding: 0; }
+.status-select { min-width: 105px; padding: 7px 8px; border: 1px solid #dce3ed; border-radius: 7px; color: #27354d; background: #fff; }
 .overview { padding-top: 34px; }
 .welcome-card { min-height: 205px; display: flex; align-items: center; justify-content: space-between; overflow: hidden; padding: 32px 38px; border-radius: 18px; color: #fff; background: linear-gradient(120deg, #172b4d, #274c78); box-shadow: 0 14px 30px rgba(27, 52, 86, .12); }
 .welcome-card h2 { margin: 7px 0; font-size: 29px; letter-spacing: -.5px; }
@@ -84,6 +91,12 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { padding: 12px 14px; color: #7b879b; font-size: 11px; letter-spacing: .06em; text-align: left; text-transform: uppercase; background: #f7f9fc; }
 td { padding: 15px 14px; color: #46536a; border-bottom: 1px solid #edf0f5; white-space: nowrap; }
 tbody tr:hover { background: #fbfcfe; }
+.row-actions { display: flex; gap: 7px; }
+.action-button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 9px; border: 1px solid #dbe2ec; border-radius: 7px; color: #59677f; background: #fff; font-size: 12px; font-weight: 700; }
+.action-button:hover { color: #213c64; border-color: #b9c7db; }
+.action-button:disabled { cursor: wait; opacity: .6; }
+.danger-button:hover { color: #a83b43; border-color: #e4aeb2; }
+.table-input { width: 100%; min-width: 120px; padding: 7px 8px; border: 1px solid #dce3ed; border-radius: 7px; color: #27354d; background: #fff; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 900px) {
   .sidebar { width: 78px; flex-basis: 78px; }

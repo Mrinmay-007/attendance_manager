@@ -12,12 +12,18 @@ import {
   Menu,
   PanelLeftClose,
   Plus,
+  Pencil,
+  Trash2,
   RefreshCw,
   School,
   Users,
   X,
 } from "lucide-react";
 import { apiFetch } from "./api";
+
+function statusClass(status) {
+  return `status-badge status-${String(status || "").toLowerCase()}`;
+}
 
 const roleCopy = {
   admin: { label: "Administrator", eyebrow: "Operations workspace" },
@@ -26,12 +32,12 @@ const roleCopy = {
 };
 
 const adminResources = [
-  { key: "departments", label: "Departments", endpoint: "/admin/departments", create: "/admin/departments", icon: School, fields: [["college_id", "College ID", "number"], ["dept_name", "Department name"], ["dept_code", "Department code"], ["description", "Description"]] },
-  { key: "teachers", label: "Teachers", endpoint: "/admin/teachers", create: "/admin/teachers", icon: Users, fields: [["name", "Full name"], ["email", "Email", "email"], ["password", "Initial password", "password"], ["dept_id", "Department ID", "number"], ["teacher_code", "Teacher code"], ["designation", "Designation"], ["experience", "Experience (years)", "number"], ["join_date", "Join date", "date"]] },
-  { key: "students", label: "Students", endpoint: "/admin/students", create: "/admin/students", icon: GraduationCap, fields: [["name", "Full name"], ["email", "Email", "email"], ["password", "Initial password", "password"], ["dept_id", "Department ID", "number"], ["roll_no", "Roll number"], ["c_roll_no", "Class roll number"], ["year", "Year", "number"], ["sem", "Semester", "number"], ["section", "Section"]] },
-  { key: "subjects", label: "Subjects", endpoint: "/admin/subjects", create: "/admin/subjects", icon: BookOpen, fields: [["dept_id", "Department ID", "number"], ["subject_name", "Subject name"], ["subject_code", "Subject code"], ["year", "Year", "number"], ["sem", "Semester", "number"]] },
-  { key: "subject-teachers", label: "Assignments", endpoint: "/admin/subject-teachers", create: "/admin/subject-teachers", icon: ClipboardCheck, fields: [["dept_id", "Department", "number"], ["subject_id", "Subject", "number"], ["teacher_id", "Teacher", "number"]] },
-  { key: "slots", label: "Time slots", endpoint: "/admin/slots", create: "/admin/slots", icon: CalendarDays, fields: [["start_time", "Start time", "time"], ["end_time", "End time", "time"], ["slot_name", "Slot name"]] },
+  { key: "departments", label: "Departments", endpoint: "/admin/departments", create: "/admin/departments", update: "/admin/departments", remove: "/admin/departments", id: "dept_id", editFields: [["dept_name", "Department name"], ["dept_code", "Department code"], ["description", "Description"]], icon: School, fields: [["college_id", "College ID", "number"], ["dept_name", "Department name"], ["dept_code", "Department code"], ["description", "Description"]] },
+  { key: "teachers", label: "Teachers", endpoint: "/admin/teachers", create: "/admin/teachers", update: "/admin/teachers", remove: "/admin/teachers", id: "teacher_id", editFields: [["name", "Full name"], ["email", "Email", "email"], ["dept_id", "Department ID", "number"], ["teacher_code", "Teacher code"], ["designation", "Designation"], ["experience", "Experience (years)", "number"], ["join_date", "Join date", "date"]], icon: Users, fields: [["name", "Full name"], ["email", "Email", "email"], ["password", "Initial password", "password"], ["dept_id", "Department ID", "number"], ["teacher_code", "Teacher code"], ["designation", "Designation"], ["experience", "Experience (years)", "number"], ["join_date", "Join date", "date"]] },
+  { key: "students", label: "Students", endpoint: "/admin/students", create: "/admin/students", update: "/admin/students", remove: "/admin/students", id: "student_id", editFields: [["name", "Full name"], ["email", "Email", "email"], ["dept_id", "Department ID", "number"], ["roll_no", "Roll number"], ["c_roll_no", "Class roll number"], ["year", "Year", "number"], ["sem", "Semester", "number"], ["section", "Section"]], icon: GraduationCap, fields: [["name", "Full name"], ["email", "Email", "email"], ["password", "Initial password", "password"], ["dept_id", "Department ID", "number"], ["roll_no", "Roll number"], ["c_roll_no", "Class roll number"], ["year", "Year", "number"], ["sem", "Semester", "number"], ["section", "Section"]] },
+  { key: "subjects", label: "Subjects", endpoint: "/admin/subjects", create: "/admin/subjects", update: "/admin/subjects", remove: "/admin/subjects", id: "subject_id", editFields: [["dept_id", "Department ID", "number"], ["subject_name", "Subject name"], ["subject_code", "Subject code"], ["year", "Year", "number"], ["sem", "Semester", "number"]], icon: BookOpen, fields: [["dept_id", "Department ID", "number"], ["subject_name", "Subject name"], ["subject_code", "Subject code"], ["year", "Year", "number"], ["sem", "Semester", "number"]] },
+  { key: "subject-teachers", label: "Assignments", endpoint: "/admin/subject-teachers", create: "/admin/subject-teachers", update: "/admin/subject-teachers", remove: "/admin/subject-teachers", id: "st_id", editFields: [["dept_id", "Department", "number"], ["subject_id", "Subject", "number"], ["teacher_id", "Teacher", "number"]], icon: ClipboardCheck, fields: [["dept_id", "Department", "number"], ["subject_id", "Subject", "number"], ["teacher_id", "Teacher", "number"]] },
+  { key: "slots", label: "Time slots", endpoint: "/admin/slots", create: "/admin/slots", update: "/admin/slots", remove: "/admin/slots", id: "slot_id", editFields: [["start_time", "Start time", "time"], ["end_time", "End time", "time"], ["slot_name", "Slot name"]], icon: CalendarDays, fields: [["start_time", "Start time", "time"], ["end_time", "End time", "time"], ["slot_name", "Slot name"]] },
   { key: "routines", label: "Routines", endpoint: "/admin/routines", create: "/admin/routines", icon: CalendarDays, fields: [["st_id", "Assignment ID", "number"], ["slot_id", "Slot ID", "number"], ["dept_id", "Department ID", "number"], ["day", "Day"]] },
 ];
 
@@ -42,6 +48,7 @@ const navByRole = {
     { key: "subjects", label: "My subjects", endpoint: "/teacher/my-subjects", icon: BookOpen },
     { key: "routine", label: "My routine", endpoint: "/teacher/my-routine", icon: CalendarDays },
     { key: "attendance", label: "Attendance", endpoint: "/teacher/attendance", icon: ClipboardCheck },
+    { key: "teacher-history", label: "Attendance history", endpoint: "/teacher/attendance/history", icon: CalendarDays },
   ],
   student: [
     { key: "overview", label: "Overview", icon: LayoutDashboard },
@@ -61,16 +68,102 @@ function formatValue(value) {
   return String(value);
 }
 
-function DataTable({ rows, loading, resource }) {
+function DataTable({ rows, loading, resource,onChanged }) {
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [attendanceEditingId, setAttendanceEditingId] = useState(null);
+  const [attendanceEditStatus, setAttendanceEditStatus] = useState("");
   const columns = useMemo(() => {
+    if (resource?.key === "attendance") {
+      return [
+        "date",
+        "student_name",
+        "roll_no",
+        "c_roll_no",
+        "dept_name",
+        "subject_name",
+        "status",
+      ];
+    }
     const keys = new Set();
     rows.forEach((row) => Object.keys(row || {}).forEach((key) => keys.add(key)));
-    return [...keys].slice(0, 8);
-  }, [rows]);
+    const editableColumns = resource?.editFields?.map(([name]) => name) || [];
+    return [...new Set([...editableColumns, ...keys])].slice(0, 8);
+  }, [rows, resource]);
+  const sortedRows = useMemo(() => [...rows].sort((a, b) => {
+    const dateOrder = String(b.date || "").localeCompare(String(a.date || ""));
+    if (dateOrder) return dateOrder;
+    return String(a.c_roll_no || a.roll_no || "").localeCompare(String(b.c_roll_no || b.roll_no || ""), undefined, { numeric: true });
+  }), [rows]);
 
   if (loading) return <div className="empty-state"><RefreshCw className="spin" size={20} /> Loading live data…</div>;
   if (!rows.length) return <div className="empty-state">No records found for this workspace.</div>;
 
+  const canManage = Boolean(resource?.update && resource?.remove && resource?.id && resource?.editFields);
+  const isAttendanceTable = resource?.key === "attendance";
+  function startEditing(row) {
+    setActionError("");
+    setEditingId(row[resource.id]);
+    setEditValues(Object.fromEntries(resource.editFields.map(([name]) => [name, row[name] ?? ""])));
+  }
+
+  async function saveEdit(row) {
+    if (!window.confirm(`Update this ${resource.label.slice(0, -1).toLowerCase()}?`)) return;
+    setSaving(true);
+    setActionError("");
+    try {
+      const payload = Object.fromEntries(Object.entries(editValues).map(([key, value]) => {
+        const field = resource.editFields.find(([name]) => name === key);
+        return [key, field?.[2] === "number" ? Number(value) : value];
+      }));
+      await apiFetch(`${resource.update}/${row[resource.id]}`, "PATCH", payload);
+      setEditingId(null);
+      onChanged();
+    } catch (requestError) {
+      setActionError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteRow(row) {
+    if (!window.confirm(`Delete this ${resource.label.slice(0, -1).toLowerCase()}? This action cannot be undone.`)) return;
+    setSaving(true);
+    setActionError("");
+    try {
+      await apiFetch(`${resource.remove}/${row[resource.id]}`, "DELETE");
+      onChanged();
+    } catch (requestError) {
+      setActionError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+
+  }
+
+  async function saveAttendanceEdit(row) {
+    const status = attendanceEditStatus;
+    if (!window.confirm(`Update attendance for ${row.student_name}?`)) return;
+    setSaving(true);
+    setActionError("");
+    try {
+      await apiFetch("/teacher/attendance", "POST", {
+        st_id: row.st_id,
+        student_id: row.student_id,
+        date: row.date,
+        status,
+      });
+      onChanged();
+      setAttendanceEditingId(null);
+    } catch (requestError) {
+      setActionError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+  
   function displayValue(row, column) {
     if (resource?.key === "subject-teachers" && column === "subject_id" && row.subject) {
       return `${row.subject_id} - ${row.subject.subject_name} (${row.subject.subject_code})`;
@@ -87,17 +180,51 @@ function DataTable({ rows, loading, resource }) {
     if (resource?.key === "subjects" && column === "dept_id") {
       return `${row.dept_id} - ${formatValue(row.dept_name)} (${formatValue(row.dept_code)})`;
     }
+    if (resource?.key === "subject-teachers" && column === "dept_id") {
+      return `${row.dept_id} - ${formatValue(row.dept_name)} (${formatValue(row.dept_code)})`;
+    }
     if (resource?.key === "attendance" && column === "student_id") {
       return formatValue(row.roll_no);
+    }
+    if (resource?.key === "attendance" && column === "dept_name") {
+      return `${formatValue(row.dept_name)} (${formatValue(row.dept_code)})`;
+    }
+    if (resource?.key === "attendance" && column === "subject_name") {
+      return `${formatValue(row.subject_name)} (${formatValue(row.subject_code)})`;
     }
     return formatValue(row[column]);
   }
 
   return (
+    
     <div className="table-wrap">
+      {actionError && <div className="alert"><X size={16} />{actionError}</div>}
       <table>
-        <thead><tr>{columns.map((column) => <th key={column}>{column.replaceAll("_", " ")}</th>)}</tr></thead>
-        <tbody>{rows.map((row, index) => <tr key={row.id || row[`${columns[0]}`] || index}>{columns.map((column) => <td key={column}>{displayValue(row, column)}</td>)}</tr>)}</tbody>
+       <thead><tr>{columns.map((column) => <th key={column}>{column.replaceAll("_", " ")}</th>)}{(canManage || isAttendanceTable) && <th>Actions</th>}</tr></thead>
+        <tbody>{sortedRows.map((row, index) => {
+          const rowKey = row.id || row[`${columns[0]}`] || index;
+          const editing = editingId === row[resource.id];
+          return <tr key={rowKey}>
+            {columns.map((column) => <td key={column}>{editing && resource.editFields.some(([name]) => name === column)
+              ? <input className="table-input" type={resource.editFields.find(([name]) => name === column)?.[2] || "text"} value={editValues[column]} onChange={(event) => setEditValues({ ...editValues, [column]: event.target.value })} />
+              : column === "status" ? <span className={statusClass(row.status)}>{row.status}</span> : displayValue(row, column)}</td>)}
+            {canManage && <td><div className="row-actions">
+              {editing
+                ? <><button className="action-button" disabled={saving} onClick={() => saveEdit(row)}>Save</button><button className="action-button" disabled={saving} onClick={() => setEditingId(null)}>Cancel</button></>
+                : <><button className="action-button" title="Edit department" disabled={saving} onClick={() => startEditing(row)}><Pencil size={15} /> Edit</button><button className="action-button danger-button" title="Delete department" disabled={saving} onClick={() => deleteRow(row)}><Trash2 size={15} /> Delete</button></>}
+            </div></td>}
+            {isAttendanceTable && <td>
+              {attendanceEditingId === row.attendance_id
+                ? <div className="row-actions">
+                  <select className="status-select" value={attendanceEditStatus} onChange={(event) => setAttendanceEditStatus(event.target.value)}>
+                    {["Present", "Absent", "Late"].map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                  <button className="action-button" disabled={saving} onClick={() => saveAttendanceEdit(row)}>Save</button>
+                </div>
+                : <button className="icon-button attendance-edit-button" title="Edit attendance status" aria-label={`Edit attendance for ${row.student_name}`} disabled={saving} onClick={() => { setAttendanceEditingId(row.attendance_id); setAttendanceEditStatus(row.status); }}><Pencil size={15} /></button>}
+            </td>}
+          </tr>;
+        })}</tbody>
       </table>
     </div>
   );
@@ -288,6 +415,90 @@ function CreateForm({ resource, onCreated, user }) {
   );
 }
 
+function TeacherAttendanceHistory() {
+  const [rows, setRows] = useState([]);
+  const [date, setDate] = useState("");
+  const [deptCode, setDeptCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [savingId, setSavingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editStatus, setEditStatus] = useState("");
+
+  const loadHistory = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const params = new URLSearchParams();
+    if (date) params.set("date", date);
+    if (deptCode.trim()) params.set("dept_code", deptCode.trim());
+    try {
+      const result = await apiFetch(`/teacher/attendance/history?${params.toString()}`);
+      setRows((result || []).sort((a, b) => {
+        const dateOrder = String(b.date || "").localeCompare(String(a.date || ""));
+        if (dateOrder) return dateOrder;
+        return String(a.c_roll_no || a.roll_no || "").localeCompare(String(b.c_roll_no || b.roll_no || ""), undefined, { numeric: true });
+      }));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [date, deptCode]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  async function updateStatus(row, status) {
+    if (status === row.status || !window.confirm(`Update attendance for ${row.student_name}?`)) return;
+    setSavingId(row.attendance_id);
+    setError("");
+    try {
+      await apiFetch(`/teacher/attendance/${row.attendance_id}`, "PATCH", { status });
+      await loadHistory();
+      setEditingId(null);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  return <div className="create-form">
+    <div className="form-grid">
+      <label>Date
+        <input type="date" max={new Date().toISOString().slice(0, 10)} value={date} onChange={(event) => setDate(event.target.value)} />
+      </label>
+      <label>Department code
+        <input placeholder="e.g. CSE" value={deptCode} onChange={(event) => setDeptCode(event.target.value)} />
+      </label>
+    </div>
+    {error && <p className="form-error">{error}</p>}
+    {loading ? <div className="empty-state"><RefreshCw className="spin" size={20} /> Loading history…</div> :
+      !rows.length ? <div className="empty-state">No attendance history found for these filters.</div> :
+      <div className="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Student</th><th>Roll number</th><th>Department</th><th>Subject</th><th>Status</th><th>Update</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.attendance_id}>
+          <td>{row.date}</td>
+          <td>{row.student_name}</td>
+          <td>{row.roll_no}</td>
+          <td>{row.dept_name} ({row.dept_code})</td>
+          <td>{row.subject_name} ({row.subject_code})</td>
+          <td>{editingId === row.attendance_id
+            ? <select className="status-select" value={editStatus} onChange={(event) => setEditStatus(event.target.value)}>
+              {["Present", "Absent", "Late"].map((status) => <option key={status} value={status}>{status}</option>)}
+            </select>
+            : <span className={statusClass(row.status)}>{row.status}</span>}</td>
+          <td>
+            {editingId === row.attendance_id
+              ? <button className="action-button" disabled={savingId === row.attendance_id} onClick={() => updateStatus(row, editStatus)}>Save</button>
+              : <button className="icon-button attendance-edit-button" title="Edit attendance status" aria-label={`Edit attendance for ${row.student_name}`} disabled={savingId === row.attendance_id} onClick={() => { setEditingId(row.attendance_id); setEditStatus(row.status); }}><Pencil size={15} /></button>}
+          </td>
+        </tr>)}</tbody>
+      </table></div>}
+  </div>;
+}
+
 function AttendanceForm({ onCreated }) {
   const [assignments, setAssignments] = useState([]);
   const [students, setStudents] = useState([]);
@@ -309,6 +520,7 @@ function AttendanceForm({ onCreated }) {
       setStatuses({});
       return;
     }
+
     apiFetch(`/teacher/assigned-students?st_id=${selectedAssignment}`)
       .then((studentData) => {
         setStudents(studentData);
@@ -319,6 +531,10 @@ function AttendanceForm({ onCreated }) {
 
   function selectStatus(studentId, status) {
     setStatuses((current) => ({ ...current, [studentId]: status }));
+  }
+
+  function setAllStatuses(status) {
+    setStatuses(Object.fromEntries(students.map((student) => [student.student_id, status])));
   }
 
   async function saveAttendance() {
@@ -357,9 +573,22 @@ function AttendanceForm({ onCreated }) {
           ))}
         </select>
       </label>
-      <label>Date<input required type="date" value={date} onChange={(event) => { setDate(event.target.value); setStatuses({}); }} /></label>
+      <label>Date<input required type="date" max={new Date().toISOString().slice(0, 10)} value={date} onChange={(event) => { setDate(event.target.value); setStatuses({}); }} /></label>
     </div>
     {error && <p className="form-error">{error}</p>}
+    {students.length > 0 && <div className="heading-actions attendance-bulk-actions">
+      <span className="muted">Set all students:</span>
+      {["Present", "Absent", "Late"].map((status) => (
+        <button
+          className={`attendance-button attendance-${status.toLowerCase()}`}
+          type="button"
+          key={status}
+          onClick={() => setAllStatuses(status)}
+        >
+          {status}
+        </button>
+      ))}
+    </div>}
     {selectedAssignment && !students.length && <p className="muted">No students found for this assigned class.</p>}
     {students.length > 0 && <div className="table-wrap"><table>
       <thead><tr><th>Student</th><th>Roll number</th><th>Section</th><th>Mark attendance</th></tr></thead>
@@ -497,9 +726,11 @@ export default function RolePortal({ role }) {
         {selected.key === "history" && <div className="create-panel"><label>Filter by date<input type="date" value={historyDate} onChange={(event) => setHistoryDate(event.target.value)} /></label>{historyDate && <button className="secondary-button" type="button" onClick={() => setHistoryDate("")}>Clear filter</button>}</div>}
         {selected.create && <div id="create-record" className="create-panel"><h3>Create record</h3><CreateForm resource={selected} user={user} onCreated={() => load()} /></div>}
         {role === "teacher" && active === "attendance" && <div className="create-panel"><h3>Record attendance</h3><AttendanceForm onCreated={() => load()} /></div>}
-        {role === "student" && active === "attendance"
+        {role === "teacher" && active === "teacher-history"
+          ? <TeacherAttendanceHistory />
+          : role === "student" && active === "attendance"
           ? (loading ? <div className="empty-state"><RefreshCw className="spin" size={20} /> Loading live data…</div> : <StudentAttendanceDetails summaries={rows} />)
-          : <DataTable rows={filteredHistory} loading={loading} resource={selected} />}
+          : <DataTable rows={filteredHistory} loading={loading} resource={selected} onChanged={load} />}
       </section>}
     </main>
   </div>;

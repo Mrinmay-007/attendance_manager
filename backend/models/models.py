@@ -176,6 +176,7 @@ class Attendance(Base):
     student_id = Column(Integer, ForeignKey("student.student_id"), nullable=False)
     date = Column(Date, nullable=False)
     status = Column(Enum(StatusEnum), nullable=False)
+    marked_at = Column(DateTime, server_default=func.now(), nullable=True)
 
     subject_teacher = relationship("SubjectTeacher", back_populates="attendances")
     student = relationship("Student", back_populates="attendances")

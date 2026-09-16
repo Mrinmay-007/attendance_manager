@@ -98,7 +98,15 @@ def list_subjects(
     if dept_id:
         _require_department(db, dept_id, current_user.college_id)  # type: ignore
         q = q.filter(models.Subject.dept_id == dept_id)
-    return q.all()
+    subjects = q.all()
+    return [
+        {
+            **{column.name: getattr(subject, column.name) for column in models.Subject.__table__.columns},
+            "dept_name": subject.department.dept_name,
+            "dept_code": subject.department.dept_code,
+        }
+        for subject in subjects
+    ]
 
 
 # ---------- Subject <-> Teacher assignment ----------
@@ -118,7 +126,25 @@ def list_subject_teachers(
     if dept_id:
         _require_department(db, dept_id, current_user.college_id)  # type: ignore
         q = q.filter(models.SubjectTeacher.dept_id == dept_id)
-    return q.all()
+    assignments = q.all()
+    return [
+        {
+            **{column.name: getattr(assignment, column.name) for column in models.SubjectTeacher.__table__.columns},
+            "dept_name": db.query(models.Department).filter(
+                models.Department.dept_id == assignment.dept_id
+            ).first().dept_name,
+            "dept_code": db.query(models.Department).filter(
+                models.Department.dept_id == assignment.dept_id
+            ).first().dept_code,
+            "subject_name": assignment.subject.subject_name,
+            "subject_code": assignment.subject.subject_code,
+            "teacher_name": assignment.teacher.user.name,
+            "teacher_code": assignment.teacher.teacher_code,
+            "year": assignment.subject.year,
+            "sem": assignment.subject.sem,
+        }
+        for assignment in assignments
+    ]
 
 
 # ---------- Slot ----------

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, HTTPException
+from datetime import date, datetime
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -24,6 +26,8 @@ def mark_attendance(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
+    if payload.date > date.today():
+        raise HTTPException(status_code=400, detail="Attendance date cannot be in the future")
     teacher = _get_teacher(db, current_user)
 
     # Ensure the st_id being marked actually belongs to this teacher.
@@ -50,7 +54,7 @@ def mark_attendance(
     if record:
         record.status = payload.status
     else:
-        record = models.Attendance(**payload.model_dump())
+        record = models.Attendance(**payload.model_dump(), marked_at=datetime.utcnow())
         db.add(record)
     try:
         db.commit()
@@ -59,5 +63,3 @@ def mark_attendance(
         raise HTTPException(400, f"Attendance already marked or invalid: {e.orig}")
     db.refresh(record)
     return record
-
-

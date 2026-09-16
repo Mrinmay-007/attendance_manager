@@ -113,6 +113,32 @@ class StudentOut(StudentCreate):
     email: Optional[EmailStr] = None
 
 
+class DepartmentUpdate(BaseModel):
+    dept_name: Optional[str] = None
+    dept_code: Optional[str] = None
+    description: Optional[str] = None
+
+
+class TeacherUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    dept_id: Optional[int] = None
+    teacher_code: Optional[str] = None
+    designation: Optional[str] = None
+    experience: Optional[int] = None
+    join_date: Optional[dt.date] = None
+
+
+class StudentUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    dept_id: Optional[int] = None
+    roll_no: Optional[str] = None
+    c_roll_no: Optional[str] = None
+    year: Optional[int] = None
+    sem: Optional[int] = None
+    section: Optional[str] = None
+
 # ---------- Subject / SubjectTeacher ----------
 class SubjectCreate(BaseModel):
     dept_id: int
@@ -122,15 +148,31 @@ class SubjectCreate(BaseModel):
     sem: Optional[int] = None
 
 
+class SubjectUpdate(BaseModel):
+    dept_id: Optional[int] = None
+    subject_name: Optional[str] = None
+    subject_code: Optional[str] = None
+    year: Optional[int] = None
+    sem: Optional[int] = None
+
+
 class SubjectOut(SubjectCreate):
     model_config = ConfigDict(from_attributes=True)
     subject_id: int
+    dept_name: Optional[str] = None
+    dept_code: Optional[str] = None
 
 
 class SubjectTeacherCreate(BaseModel):
     subject_id: int
     teacher_id: int
     dept_id: int
+
+
+class SubjectTeacherUpdate(BaseModel):
+    subject_id: Optional[int] = None
+    teacher_id: Optional[int] = None
+    dept_id: Optional[int] = None
 
 
 class SubjectTeacherOut(SubjectTeacherCreate):
@@ -148,6 +190,12 @@ class SubjectTeacherOut(SubjectTeacherCreate):
 class SlotCreate(BaseModel):
     start_time: dt.time
     end_time: dt.time
+    slot_name: Optional[str] = None
+
+
+class SlotUpdate(BaseModel):
+    start_time: Optional[dt.time] = None
+    end_time: Optional[dt.time] = None
     slot_name: Optional[str] = None
 
 
@@ -182,6 +230,15 @@ class AttendanceOut(AttendanceMark):
     student_name: Optional[str] = None
     roll_no: Optional[str] = None
     c_roll_no: Optional[str] = None
+    marked_at: Optional[dt.datetime] = None
+    dept_name: Optional[str] = None
+    dept_code: Optional[str] = None
+    subject_name: Optional[str] = None
+    subject_code: Optional[str] = None
+
+
+class AttendanceUpdate(BaseModel):
+    status: StatusEnum
 
 
 class TeacherStudentOut(BaseModel):
