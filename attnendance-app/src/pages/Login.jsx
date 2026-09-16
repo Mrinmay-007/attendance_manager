@@ -172,15 +172,15 @@ export default function Login() {
             >
               See Manual
             </a>
-            <span className="mx-2">-</span>
-            <a
+            {/* <span className="mx-2">-</span> */}
+            {/* <a
               href="/feedback"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline"
             >
               Feedback or Questions?
-            </a>
+            </a> */}
           </div>
         </form>
       </div>

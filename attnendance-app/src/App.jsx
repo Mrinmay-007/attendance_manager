@@ -7,7 +7,7 @@ import Student from "./pages/Student";
 import Teacher from "./pages/Faculty";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import Manual from "./pages/manual";
-import FeedbackForm from "./pages/feedback";
+// import FeedbackForm from "./pages/feedback";
 
 export default function App() {
   return (
@@ -45,7 +45,7 @@ export default function App() {
           }
         />
         <Route path="/manual" element={ <Manual />}/>
-        <Route path="/feedback" element={ <FeedbackForm />}/>
+        {/* <Route path="/feedback" element={ <FeedbackForm />}/> */}
 
       </Routes>
     </Router>
