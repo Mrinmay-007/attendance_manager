@@ -59,7 +59,7 @@ class DepartmentOut(DepartmentCreate):
 # ---------- Teacher / Student ----------
 class TeacherCreate(BaseModel):
     user_id: int
-    dept_id: int
+    dept_id: Optional[int] = None
     teacher_code: str
     designation: Optional[str] = None
     experience: Optional[int] = None
@@ -70,7 +70,6 @@ class AdminTeacherCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
-    dept_id: int
     teacher_code: str
     designation: Optional[str] = None
     experience: Optional[int] = None
@@ -182,6 +181,8 @@ class SubjectTeacherOut(SubjectTeacherCreate):
     dept_code: Optional[str] = None
     subject_name: Optional[str] = None
     subject_code: Optional[str] = None
+    teacher_name: Optional[str] = None
+    teacher_code: Optional[str] = None
     year: Optional[int] = None
     sem: Optional[int] = None
 

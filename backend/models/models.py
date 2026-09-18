@@ -81,7 +81,7 @@ class Teacher(Base):
 
     teacher_id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("user.user_id"), unique=True, nullable=False)
-    dept_id = Column(Integer, ForeignKey("department.dept_id"), nullable=False)
+    dept_id = Column(Integer, ForeignKey("department.dept_id"), nullable=True)
     teacher_code = Column(String(30), unique=True, nullable=False)
     designation = Column(String(80))
     experience = Column(Integer)

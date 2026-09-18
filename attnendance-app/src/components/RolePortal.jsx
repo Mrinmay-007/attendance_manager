@@ -33,12 +33,12 @@ const roleCopy = {
 
 const adminResources = [
   { key: "departments", label: "Departments", endpoint: "/admin/departments", create: "/admin/departments", update: "/admin/departments", remove: "/admin/departments", id: "dept_id", editFields: [["dept_name", "Department name"], ["dept_code", "Department code"], ["description", "Description"]], icon: School, fields: [["college_id", "College ID", "number"], ["dept_name", "Department name"], ["dept_code", "Department code"], ["description", "Description"]] },
-  { key: "teachers", label: "Teachers", endpoint: "/admin/teachers", create: "/admin/teachers", update: "/admin/teachers", remove: "/admin/teachers", id: "teacher_id", editFields: [["name", "Full name"], ["email", "Email", "email"], ["dept_id", "Department ID", "number"], ["teacher_code", "Teacher code"], ["designation", "Designation"], ["experience", "Experience (years)", "number"], ["join_date", "Join date", "date"]], icon: Users, fields: [["name", "Full name"], ["email", "Email", "email"], ["password", "Initial password", "password"], ["dept_id", "Department ID", "number"], ["teacher_code", "Teacher code"], ["designation", "Designation"], ["experience", "Experience (years)", "number"], ["join_date", "Join date", "date"]] },
+  { key: "teachers", label: "Teachers", endpoint: "/admin/teachers", create: "/admin/teachers", update: "/admin/teachers", remove: "/admin/teachers", id: "teacher_id", editFields: [["name", "Full name"], ["email", "Email", "email"], ["teacher_code", "Teacher code"], ["designation", "Designation"], ["experience", "Experience (years)", "number"], ["join_date", "Join date", "date"]], icon: Users, fields: [["name", "Full name"], ["email", "Email", "email"], ["password", "Initial password", "password"], ["teacher_code", "Teacher code"], ["designation", "Designation"], ["experience", "Experience (years)", "number"], ["join_date", "Join date", "date"]] },
   { key: "students", label: "Students", endpoint: "/admin/students", create: "/admin/students", update: "/admin/students", remove: "/admin/students", id: "student_id", editFields: [["name", "Full name"], ["email", "Email", "email"], ["dept_id", "Department ID", "number"], ["roll_no", "Roll number"], ["c_roll_no", "Class roll number"], ["year", "Year", "number"], ["sem", "Semester", "number"], ["section", "Section"]], icon: GraduationCap, fields: [["name", "Full name"], ["email", "Email", "email"], ["password", "Initial password", "password"], ["dept_id", "Department ID", "number"], ["roll_no", "Roll number"], ["c_roll_no", "Class roll number"], ["year", "Year", "number"], ["sem", "Semester", "number"], ["section", "Section"]] },
   { key: "subjects", label: "Subjects", endpoint: "/admin/subjects", create: "/admin/subjects", update: "/admin/subjects", remove: "/admin/subjects", id: "subject_id", editFields: [["dept_id", "Department ID", "number"], ["subject_name", "Subject name"], ["subject_code", "Subject code"], ["year", "Year", "number"], ["sem", "Semester", "number"]], icon: BookOpen, fields: [["dept_id", "Department ID", "number"], ["subject_name", "Subject name"], ["subject_code", "Subject code"], ["year", "Year", "number"], ["sem", "Semester", "number"]] },
   { key: "subject-teachers", label: "Assignments", endpoint: "/admin/subject-teachers", create: "/admin/subject-teachers", update: "/admin/subject-teachers", remove: "/admin/subject-teachers", id: "st_id", editFields: [["dept_id", "Department", "number"], ["subject_id", "Subject", "number"], ["teacher_id", "Teacher", "number"]], icon: ClipboardCheck, fields: [["dept_id", "Department", "number"], ["subject_id", "Subject", "number"], ["teacher_id", "Teacher", "number"]] },
   { key: "slots", label: "Time slots", endpoint: "/admin/slots", create: "/admin/slots", update: "/admin/slots", remove: "/admin/slots", id: "slot_id", editFields: [["start_time", "Start time", "time"], ["end_time", "End time", "time"], ["slot_name", "Slot name"]], icon: CalendarDays, fields: [["start_time", "Start time", "time"], ["end_time", "End time", "time"], ["slot_name", "Slot name"]] },
-  { key: "routines", label: "Routines", endpoint: "/admin/routines", create: "/admin/routines", icon: CalendarDays, fields: [["st_id", "Assignment ID", "number"], ["slot_id", "Slot ID", "number"], ["dept_id", "Department ID", "number"], ["day", "Day"]] },
+  { key: "routines", label: "Routines", endpoint: "/admin/routines", create: "/admin/routines", icon: CalendarDays, fields: [["dept_id", "Department", "number"], ["st_id", "Assignment", "number"], ["teacher_id", "Available teacher", "number"], ["slot_id", "Time slot", "number"], ["day", "Day"]] },
 ];
 
 const navByRole = {
@@ -90,7 +90,16 @@ function DataTable({ rows, loading, resource,onChanged }) {
     const keys = new Set();
     rows.forEach((row) => Object.keys(row || {}).forEach((key) => keys.add(key)));
     const editableColumns = resource?.editFields?.map(([name]) => name) || [];
-    return [...new Set([...editableColumns, ...keys])].slice(0, 8);
+    const columns = [...new Set([...editableColumns, ...keys])];
+    if (resource?.key === "subject-teachers") {
+      return columns
+        .filter((column) => !["subject_id", "teacher_id", "st_id", "dept_name", "dept_code"].includes(column))
+        .slice(0, 8);
+    }
+    if (resource?.key === "departments") {
+      return columns.filter((column) => column !== "college_id").slice(0, 8);
+    }
+    return columns.slice(0, 8);
   }, [rows, resource]);
   const sortedRows = useMemo(() => [...rows].sort((a, b) => {
     const dateOrder = String(b.date || "").localeCompare(String(a.date || ""));
@@ -182,6 +191,12 @@ function DataTable({ rows, loading, resource,onChanged }) {
     }
     if (resource?.key === "subject-teachers" && column === "dept_id") {
       return `${row.dept_id} - ${formatValue(row.dept_name)} (${formatValue(row.dept_code)})`;
+    }
+    if (resource?.key === "subject-teachers" && column === "subject_name") {
+      return `${formatValue(row.subject_name)} (${formatValue(row.subject_code)})`;
+    }
+    if (resource?.key === "subject-teachers" && column === "teacher_name") {
+      return `${formatValue(row.teacher_name)} (${formatValue(row.teacher_code)})`;
     }
     if (resource?.key === "attendance" && column === "student_id") {
       return formatValue(row.roll_no);
@@ -291,16 +306,48 @@ function CreateForm({ resource, onCreated, user }) {
   const [departments, setDepartments] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [routines, setRoutines] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const isDepartmentCollegeId = resource.key === "departments";
+  const isRoutine = resource.key === "routines";
   const selectedDepartmentId = values.dept_id;
+  const availableAssignments = useMemo(() => assignments.filter((assignment) => (
+    !values.slot_id
+    || !values.day
+    || !routines.some((routine) => (
+      String(routine.st_id) === String(assignment.st_id)
+      && String(routine.slot_id) === String(values.slot_id)
+      && routine.day === values.day
+    ))
+  )), [assignments, routines, values.slot_id, values.day]);
+  const selectedAssignment = assignments.find(
+    (assignment) => String(assignment.st_id) === String(values.st_id)
+  );
+  const availableTeachers = useMemo(() => {
+    if (!selectedAssignment || !values.slot_id || !values.day) return [];
+    return assignments
+      .filter((assignment) => (
+        assignment.subject_id === selectedAssignment.subject_id
+        && !routines.some((routine) => (
+          String(routine.st_id) === String(assignment.st_id)
+          && String(routine.slot_id) === String(values.slot_id)
+          && routine.day === values.day
+        ))
+      ))
+      .reduce((result, assignment) => {
+        if (!result.some((teacher) => teacher.teacher_id === assignment.teacher_id)) {
+          result.push(assignment);
+        }
+        return result;
+      }, []);
+  }, [assignments, routines, selectedAssignment, values.day, values.slot_id]);
   const departmentSubjects = subjects.filter(
     (subject) => String(subject.dept_id) === String(selectedDepartmentId)
   );
-  const departmentTeachers = teachers.filter(
-    (teacher) => String(teacher.dept_id) === String(selectedDepartmentId)
-  );
+  const departmentTeachers = teachers;
   const selectedSubject = subjects.find(
     (subject) => String(subject.subject_id) === String(values.subject_id)
   );
@@ -330,17 +377,88 @@ function CreateForm({ resource, onCreated, user }) {
       .catch((requestError) => setError(requestError.message));
   }, [resource]);
 
+  useEffect(() => {
+    if (!isRoutine) return;
+    setAssignments([]);
+    setSlots([]);
+    setRoutines([]);
+    setValues((current) => ({ ...current, st_id: "", slot_id: "" }));
+    if (!selectedDepartmentId) return;
+
+    Promise.all([
+      apiFetch(`/admin/subject-teachers?dept_id=${selectedDepartmentId}`),
+      apiFetch("/admin/slots"),
+    ])
+      .then(([assignmentData, slotData]) => {
+        setAssignments(assignmentData);
+        setSlots(slotData);
+      })
+      .catch((requestError) => setError(requestError.message));
+  }, [isRoutine, selectedDepartmentId]);
+
+  useEffect(() => {
+    if (!isRoutine || !selectedDepartmentId) return;
+    apiFetch(`/admin/routines?dept_id=${selectedDepartmentId}`)
+      .then(setRoutines)
+      .catch((requestError) => setError(requestError.message));
+  }, [isRoutine, selectedDepartmentId]);
+
+  useEffect(() => {
+    if (isRoutine && values.st_id && !availableAssignments.some(
+      (assignment) => String(assignment.st_id) === String(values.st_id)
+    )) {
+      setValues((current) => ({ ...current, st_id: "" }));
+    }
+  }, [isRoutine, values.st_id, availableAssignments]);
+
+  useEffect(() => {
+    if (
+      !isRoutine
+      || !selectedAssignment
+      || !availableTeachers.length
+      || availableTeachers.some((assignment) => String(assignment.teacher_id) === String(values.teacher_id))
+    ) {
+      return;
+    }
+    setValues((current) => ({
+      ...current,
+      teacher_id: String(selectedAssignment.teacher_id),
+      st_id: String(selectedAssignment.st_id),
+    }));
+  }, [isRoutine, selectedAssignment, availableTeachers, values.teacher_id]);
+
   async function submit(event) {
     event.preventDefault();
     setSaving(true);
     setError("");
-    const payload = Object.fromEntries(Object.entries(values).filter(([, value]) => value !== "").map(([key, value]) => {
-      const field = resource.fields.find(([name]) => name === key);
-      return [key, field?.[2] === "number" ? Number(value) : value];
-    }));
+    const payload = resource.key === "subject-teachers"
+      ? {
+        dept_id: Number(values.dept_id),
+        subject_id: Number(values.subject_id),
+        teacher_id: Number(values.teacher_id),
+      }
+      : Object.fromEntries(Object.entries(values)
+        .filter(([key, value]) => key !== "teacher_id" && value !== "")
+        .map(([key, value]) => {
+          const field = resource.fields.find(([name]) => name === key);
+          return [key, field?.[2] === "number" ? Number(value) : value];
+        }));
+    if (
+      resource.key === "subject-teachers"
+      && Object.values(payload).some((value) => !Number.isInteger(value) || value <= 0)
+    ) {
+      setError("Select a department, subject, and teacher before creating the assignment");
+      setSaving(false);
+      return;
+    }
     try {
       await apiFetch(resource.create, "POST", payload);
-      setValues(initial);
+      setValues({
+        ...initial,
+        ...(isDepartmentCollegeId && user?.college_id
+          ? { college_id: String(user.college_id) }
+          : {}),
+      });
       onCreated();
     } catch (requestError) {
       setError(requestError.message);
@@ -363,6 +481,7 @@ function CreateForm({ resource, onCreated, user }) {
                   ...values,
                   [name]: event.target.value,
                   ...(resource.key === "subject-teachers" ? { subject_id: "", teacher_id: "" } : {}),
+                  ...(isRoutine ? { st_id: "", teacher_id: "", slot_id: "", day: "" } : {}),
                 })}
               >
                 <option value="">Select a department</option>
@@ -370,6 +489,76 @@ function CreateForm({ resource, onCreated, user }) {
                   <option key={department.dept_id} value={department.dept_id}>
                     {department.dept_id} - {department.dept_name} ({department.dept_code})
                   </option>
+                ))}
+              </select>
+            ) : isRoutine && name === "st_id" ? (
+              <select
+                required
+                value={values[name]}
+                disabled={!selectedDepartmentId}
+                onChange={(event) => setValues({ ...values, [name]: event.target.value })}
+              >
+                <option value="">
+                  {selectedDepartmentId ? "Select an assignment" : "Select a department first"}
+                </option>
+                {availableAssignments.map((assignment) => (
+                  <option key={assignment.st_id} value={assignment.st_id}>
+                    {assignment.subject_name} ({assignment.subject_code}) - {assignment.teacher_name} ({assignment.teacher_code}) - Year {assignment.year ?? "—"}, Sem {assignment.sem ?? "—"}
+                  </option>
+                ))}
+              </select>
+            ) : isRoutine && name === "slot_id" ? (
+              <select
+                required
+                value={values[name]}
+                disabled={!selectedDepartmentId}
+                onChange={(event) => setValues({ ...values, [name]: event.target.value })}
+              >
+                <option value="">
+                  {selectedDepartmentId ? "Select a time slot" : "Select a department first"}
+                </option>
+                {slots.map((slot) => (
+                  <option key={slot.slot_id} value={slot.slot_id}>
+                    {slot.slot_name ? `${slot.slot_name} - ` : ""}{slot.start_time} - {slot.end_time}
+                  </option>
+                ))}
+              </select>
+            ) : isRoutine && name === "teacher_id" ? (
+              <select
+                required
+                value={values[name] || ""}
+                disabled={!values.st_id || !values.slot_id || !values.day}
+                onChange={(event) => {
+                  const assignment = availableTeachers.find(
+                    (item) => String(item.teacher_id) === event.target.value
+                  );
+                  setValues({
+                    ...values,
+                    teacher_id: event.target.value,
+                    st_id: String(assignment?.st_id || values.st_id),
+                  });
+                }}
+              >
+                <option value="">
+                  {values.st_id && values.slot_id && values.day
+                    ? "Select an available teacher"
+                    : "Select assignment, slot, and day first"}
+                </option>
+                {availableTeachers.map((assignment) => (
+                  <option key={assignment.teacher_id} value={assignment.teacher_id}>
+                    {assignment.teacher_name} ({assignment.teacher_code})
+                  </option>
+                ))}
+              </select>
+            ) : isRoutine && name === "day" ? (
+              <select
+                required
+                value={values[name]}
+                onChange={(event) => setValues({ ...values, [name]: event.target.value })}
+              >
+                <option value="">Select a day</option>
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                  <option key={day} value={day}>{day}</option>
                 ))}
               </select>
             ) : name === "subject_id" ? (

@@ -41,8 +41,7 @@ def list_teachers(
     teachers = (
         db.query(models.Teacher)
         .join(models.User)
-        .join(models.Department)
-        .filter(models.Department.college_id == current_user.college_id)  # type: ignore
+        .filter(models.User.college_id == current_user.college_id)  # type: ignore
         .all()
     )
     return [

@@ -42,14 +42,14 @@ def update_teacher(
 ):
     teacher = (
         db.query(models.Teacher)
-        .join(models.Department)
-        .filter(models.Teacher.teacher_id == teacher_id, models.Department.college_id == current_user.college_id)
+        .join(models.User)
+        .filter(models.Teacher.teacher_id == teacher_id, models.User.college_id == current_user.college_id)
         .first()
     )
     if teacher is None:
         raise HTTPException(status_code=404, detail="Teacher not found")
     values = payload.model_dump(exclude_unset=True)
-    if "dept_id" in values:
+    if "dept_id" in values and values["dept_id"] is not None:
         _require_department(db, values["dept_id"], current_user.college_id)
     user_values = {key: values.pop(key) for key in ("name", "email") if key in values}
     _apply_values(teacher, schemas.TeacherUpdate.model_validate(values))
@@ -136,7 +136,12 @@ def update_subject_teacher(
     department_id = values.get("dept_id", assignment.dept_id)
     subject = db.query(models.Subject).filter(models.Subject.subject_id == subject_id).first()
     teacher = db.query(models.Teacher).filter(models.Teacher.teacher_id == teacher_id).first()
-    if subject is None or teacher is None or subject.dept_id != department_id or teacher.dept_id != department_id:
+    if (
+        subject is None
+        or teacher is None
+        or subject.dept_id != department_id
+        or teacher.user.college_id != current_user.college_id
+    ):
         raise HTTPException(status_code=403, detail="Subject and teacher must belong to the selected department")
     _apply_values(assignment, schemas.SubjectTeacherUpdate.model_validate(values))
     return _commit(db, assignment)

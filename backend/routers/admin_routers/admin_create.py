@@ -42,7 +42,6 @@ def create_teacher(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.require_role(models.RoleEnum.admin)),
 ):
-    _require_department(db, payload.dept_id, current_user.college_id)  # type: ignore
     if db.query(models.User).filter(models.User.email == payload.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -113,15 +112,45 @@ def assign_subject_to_teacher(
 ):
     _require_department(db, payload.dept_id, current_user.college_id)  # type: ignore
     subject = db.query(models.Subject).filter(models.Subject.subject_id == payload.subject_id).first()
-    teacher = db.query(models.Teacher).filter(models.Teacher.teacher_id == payload.teacher_id).first()
+    teacher = (
+        db.query(models.Teacher)
+        .join(models.User)
+        .filter(
+            models.Teacher.teacher_id == payload.teacher_id,
+            models.User.college_id == current_user.college_id,
+        )
+        .first()
+    )
     if (
         subject is None
         or teacher is None
         or subject.dept_id != payload.dept_id
-        or teacher.dept_id != payload.dept_id
-    ): # type: ignore
-        raise HTTPException(status_code=403, detail="Subject and teacher must belong to the selected department")
-    return _commit(db, models.SubjectTeacher(**payload.model_dump()))
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Subject must belong to the selected department and teacher must belong to your college",
+        )
+    if db.query(models.SubjectTeacher).filter(
+        models.SubjectTeacher.subject_id == payload.subject_id,
+        models.SubjectTeacher.teacher_id == payload.teacher_id,
+    ).first():
+        raise HTTPException(
+            status_code=409,
+            detail="This teacher is already assigned to the selected subject",
+        )
+    assignment = _commit(db, models.SubjectTeacher(**payload.model_dump()))
+    department = _require_department(db, assignment.dept_id, current_user.college_id)
+    return {
+        **{column.name: getattr(assignment, column.name) for column in models.SubjectTeacher.__table__.columns},
+        "dept_name": department.dept_name,
+        "dept_code": department.dept_code,
+        "subject_name": assignment.subject.subject_name,
+        "subject_code": assignment.subject.subject_code,
+        "teacher_name": assignment.teacher.user.name,
+        "teacher_code": assignment.teacher.teacher_code,
+        "year": assignment.subject.year,
+        "sem": assignment.subject.sem,
+    }
 
 
 
@@ -154,4 +183,3 @@ def create_routine(
     if subject_teacher is None or subject_teacher.dept_id != payload.dept_id: # type: ignore
         raise HTTPException(status_code=403, detail="Subject-teacher assignment belongs to another department")
     return _commit(db, models.Routine(**payload.model_dump()))
-

@@ -44,9 +44,9 @@ def _delete_with_conflict_handling(db: Session, obj, message: str):
 
 @router.delete("/teachers/{teacher_id}", status_code=204)
 def delete_teacher(teacher_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.require_role(models.RoleEnum.admin))):
-    teacher = db.query(models.Teacher).join(models.Department).filter(
+    teacher = db.query(models.Teacher).join(models.User).filter(
         models.Teacher.teacher_id == teacher_id,
-        models.Department.college_id == current_user.college_id,
+        models.User.college_id == current_user.college_id,
     ).first()
     if teacher is None:
         raise HTTPException(status_code=404, detail="Teacher not found")

@@ -23,6 +23,16 @@ if "attendance" in inspect(engine).get_table_names():
         with engine.begin() as connection:
             connection.execute(text(f"ALTER TABLE attendance ADD COLUMN marked_at {marked_at_type} NULL"))
 
+if "teacher" in inspect(engine).get_table_names():
+    teacher_columns = inspect(engine).get_columns("teacher")
+    dept_column = next((column for column in teacher_columns if column["name"] == "dept_id"), None)
+    if dept_column and not dept_column["nullable"]:
+        with engine.begin() as connection:
+            if engine.dialect.name == "postgresql":
+                connection.execute(text("ALTER TABLE teacher ALTER COLUMN dept_id DROP NOT NULL"))
+            elif engine.dialect.name == "mysql":
+                connection.execute(text("ALTER TABLE teacher MODIFY COLUMN dept_id INTEGER NULL"))
+
 app = FastAPI(
     title="College Attendance Management System",
     description="Centralized attendance API for Admin, Teacher and Student roles.",
