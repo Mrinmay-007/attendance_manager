@@ -15,6 +15,9 @@ export default function Manual() {
           <li><strong>Password:</strong> admin</li>
         </ul>
       </p>
+      <p>
+        For Teacher login Use Password: teacher and for Student login Use Password: student. You can also create new users with different roles through the Admin interface.
+      </p>
       {/* Add more content as needed */}
     </div>
   );
