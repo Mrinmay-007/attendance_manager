@@ -49,25 +49,40 @@ export default function Login() {
       });
 
       setLoading(false);
-
+      
       if (response.ok) {
         const data = await response.json();
+        const userRole = data.role.toLowerCase();
+
         localStorage.setItem("email", username);
         localStorage.setItem("token", data.access_token);
-        const userResponse = await fetch(`${API_BASE || "http://localhost:8000"}/auth/me`, {
-          headers: { Authorization: `Bearer ${data.access_token}` },
-        });
-        if (!userResponse.ok) {
-          throw new Error("Unable to determine account role");
-        }
-        const user = await userResponse.json();
-        const userRole = user.role.toLowerCase();
         localStorage.setItem("role", userRole);
+        if (data.name) localStorage.setItem("name", data.name);
+
         navigate(`/${userRole}`);
       } else {
         const errorData = await response.json();
         setError(errorData.detail || "Login failed");
       }
+      // if (response.ok) {
+      //   const data = await response.json();
+      //   localStorage.setItem("email", username);
+      //   localStorage.setItem("token", data.access_token);
+      //   const userResponse = await fetch(`${API_BASE || "http://localhost:8000"}/auth/me`, {
+      //     headers: { Authorization: `Bearer ${data.access_token}` },
+      //   });
+
+      //   if (!userResponse.ok) {
+      //     throw new Error("Unable to determine account role");
+      //   }
+      //   const user = await userResponse.json();
+      //   const userRole = user.role.toLowerCase();
+      //   localStorage.setItem("role", userRole);
+      //   navigate(`/${userRole}`);
+      // } else {
+      //   const errorData = await response.json();
+      //   setError(errorData.detail || "Login failed");
+      // }
     } catch {
       setLoading(false);
       setError("An error occurred while logging in");

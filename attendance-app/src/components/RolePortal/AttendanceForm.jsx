@@ -40,25 +40,51 @@ export default function AttendanceForm({ onCreated }) {
     setStatuses(Object.fromEntries(students.map((student) => [student.student_id, status])));
   }
 
+  // async function saveAttendance() {
+  //   if (!selectedAssignment || !students.length) return;
+  //   setError("");
+  //   setSaving(true);
+  //   try {
+  //     const entries = Object.entries(statuses);
+  //     if (!entries.length) {
+  //       throw new Error("Select Present, Absent, or Late for at least one student");
+  //     }
+  //     await Promise.all(
+  //       entries.map(([studentId, status]) =>
+  //         apiFetch("/teacher/attendance", "POST", {
+  //           st_id: Number(selectedAssignment),
+  //           student_id: Number(studentId),
+  //           date,
+  //           status,
+  //         })
+  //       )
+  //     );
+  //     onCreated();
+  //     setError("");
+  //   } catch (requestError) {
+  //     setError(requestError.message);
+  //   } finally {
+  //     setSaving(false);
+  //   }
+  // }
+
   async function saveAttendance() {
     if (!selectedAssignment || !students.length) return;
     setError("");
     setSaving(true);
     try {
-      const entries = Object.entries(statuses);
-      if (!entries.length) {
+      const records = Object.entries(statuses).map(([studentId, status]) => ({
+        student_id: Number(studentId),
+        status,
+      }));
+      if (!records.length) {
         throw new Error("Select Present, Absent, or Late for at least one student");
       }
-      await Promise.all(
-        entries.map(([studentId, status]) =>
-          apiFetch("/teacher/attendance", "POST", {
-            st_id: Number(selectedAssignment),
-            student_id: Number(studentId),
-            date,
-            status,
-          })
-        )
-      );
+      await apiFetch("/teacher/attendance/bulk", "POST", {
+        st_id: Number(selectedAssignment),
+        date,
+        records,
+      });
       onCreated();
       setError("");
     } catch (requestError) {

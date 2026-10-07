@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status #type: ignore
+from fastapi.security import OAuth2PasswordRequestForm #type: ignore
+from sqlalchemy.orm import Session #type: ignore
 
 from ...models import models
 from ...schemas import schemas
@@ -44,10 +44,36 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user.is_active: # type: ignore
         raise HTTPException(status_code=403, detail="Account is inactive")
 
-    token = auth.create_access_token(
-        {"sub": str(user.user_id), "role": user.role.value}
-    )
-    return schemas.Token(access_token=token)
+    claims = {"sub": str(user.user_id), "role": user.role.value}
+
+    if user.role == models.RoleEnum.teacher:
+        teacher_id = (
+            db.query(models.Teacher.teacher_id)
+            .filter(models.Teacher.user_id == user.user_id)
+            .scalar()
+        )
+        if teacher_id is not None:
+            claims["tid"] = teacher_id
+    elif user.role == models.RoleEnum.student:
+        student_id = (
+            db.query(models.Student.student_id)
+            .filter(models.Student.user_id == user.user_id)
+            .scalar()
+        )
+        if student_id is not None:
+            claims["sid"] = student_id
+
+    token = auth.create_access_token(claims)
+    return schemas.Token(access_token=token, role=user.role, name=user.name)
+
+    # token = auth.create_access_token(
+    #     {"sub": str(user.user_id), "role": user.role.value}
+    # )
+    # return schemas.Token(
+    #     access_token=token,
+    #     role=user.role,
+    #     name=user.name,
+    #     )
 
 
 @router.get("/me", response_model=schemas.UserOut)

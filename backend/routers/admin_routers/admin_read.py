@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends #type: ignore
+from sqlalchemy.orm import Session ,contains_eager #type: ignore
 
-from sqlalchemy.orm import Session
-
+from ...cache import reference_cache
 from ...models import models
 from ...schemas import schemas
 from ...authentication import auth
@@ -14,21 +14,39 @@ router = APIRouter(
     dependencies=[Depends(auth.require_role(models.RoleEnum.admin))],
 )
 
-
+def _row(obj, model) -> dict:
+    return {c.name: getattr(obj, c.name) for c in model.__table__.columns}
 
 # ---------- Department ----------
+
+# @router.get("/departments", response_model=list[schemas.DepartmentOut])
+# def list_departments(
+#     db: Session = Depends(get_db),
+#     current_user: models.User = Depends(auth.require_role(models.RoleEnum.admin)),
+# ):
+#     return (
+#         db.query(models.Department)
+#         .filter(models.Department.college_id == current_user.college_id)  # type: ignore
+#         .all()
+#     )
+
 
 @router.get("/departments", response_model=list[schemas.DepartmentOut])
 def list_departments(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.require_role(models.RoleEnum.admin)),
 ):
-    return (
-        db.query(models.Department)
-        .filter(models.Department.college_id == current_user.college_id)  # type: ignore
-        .all()
-    )
+    college_id = current_user.college_id
 
+    def load():
+        departments = (
+            db.query(models.Department)
+            .filter(models.Department.college_id == college_id)
+            .all()
+        )
+        return [_row(d, models.Department) for d in departments]
+
+    return reference_cache.get_or_set(("departments", college_id), load)
 
 # ---------- Teacher ----------
 
@@ -83,29 +101,59 @@ def list_students(
 
 # ---------- Subject ----------
 
+# @router.get("/subjects", response_model=list[schemas.SubjectOut])
+# def list_subjects(
+#     dept_id: int | None = None,
+#     db: Session = Depends(get_db),
+#     current_user: models.User = Depends(auth.require_role(models.RoleEnum.admin)),
+# ):
+#     q = (
+#         db.query(models.Subject)
+#         .join(models.Department)
+#         .filter(models.Department.college_id == current_user.college_id)  # type: ignore
+#     )
+#     if dept_id:
+#         _require_department(db, dept_id, current_user.college_id)  # type: ignore
+#         q = q.filter(models.Subject.dept_id == dept_id)
+#     subjects = q.all()
+#     return [
+#         {
+#             **{column.name: getattr(subject, column.name) for column in models.Subject.__table__.columns},
+#             "dept_name": subject.department.dept_name,
+#             "dept_code": subject.department.dept_code,
+#         }
+#         for subject in subjects
+#     ]
+
 @router.get("/subjects", response_model=list[schemas.SubjectOut])
 def list_subjects(
     dept_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.require_role(models.RoleEnum.admin)),
 ):
-    q = (
-        db.query(models.Subject)
-        .join(models.Department)
-        .filter(models.Department.college_id == current_user.college_id)  # type: ignore
-    )
+    college_id = current_user.college_id
     if dept_id:
-        _require_department(db, dept_id, current_user.college_id)  # type: ignore
-        q = q.filter(models.Subject.dept_id == dept_id)
-    subjects = q.all()
-    return [
-        {
-            **{column.name: getattr(subject, column.name) for column in models.Subject.__table__.columns},
-            "dept_name": subject.department.dept_name,
-            "dept_code": subject.department.dept_code,
-        }
-        for subject in subjects
-    ]
+        _require_department(db, dept_id, college_id)  # keep the ownership check outside the cache
+
+    def load():
+        q = (
+            db.query(models.Subject)
+            .join(models.Department)
+            .options(contains_eager(models.Subject.department))
+            .filter(models.Department.college_id == college_id)
+        )
+        if dept_id:
+            q = q.filter(models.Subject.dept_id == dept_id)
+        return [
+            {
+                **_row(s, models.Subject),
+                "dept_name": s.department.dept_name,
+                "dept_code": s.department.dept_code,
+            }
+            for s in q.all()
+        ]
+
+    return reference_cache.get_or_set(("subjects", college_id, dept_id), load)
 
 
 # ---------- Subject <-> Teacher assignment ----------
@@ -148,14 +196,22 @@ def list_subject_teachers(
 
 # ---------- Slot ----------
 
+# @router.get("/slots", response_model=list[schemas.SlotOut])
+# def list_slots(
+#     db: Session = Depends(get_db),
+#     current_user: models.User = Depends(auth.require_role(models.RoleEnum.admin)),
+# ):
+#     return db.query(models.Slot).all()
+
 @router.get("/slots", response_model=list[schemas.SlotOut])
 def list_slots(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.require_role(models.RoleEnum.admin)),
 ):
-    return db.query(models.Slot).all()
-
-
+    return reference_cache.get_or_set(
+        ("slots",),
+        lambda: [_row(s, models.Slot) for s in db.query(models.Slot).all()],
+    )
 # ---------- Routine ----------
 
 

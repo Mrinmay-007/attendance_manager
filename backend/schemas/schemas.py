@@ -1,7 +1,7 @@
 import datetime as dt
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field #type: ignore
 
 from ..models.models import RoleEnum, DayEnum, StatusEnum
 
@@ -28,6 +28,8 @@ class UserOut(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    role: RoleEnum          # new
+    name: str | None = None # optional: lets the UI show the user's name immediately
 
 
 # ---------- College / Department ----------
@@ -267,3 +269,18 @@ class AttendanceHistoryOut(BaseModel):
     subject_name: str
     subject_code: str
     status: StatusEnum
+
+
+class BulkAttendanceRecord(BaseModel):
+    student_id: int
+    status: StatusEnum
+
+
+class BulkAttendanceMark(BaseModel):
+    st_id: int
+    date: dt.date
+    records: list[BulkAttendanceRecord] = Field(min_length=1, max_length=500)
+
+
+class BulkAttendanceOut(BaseModel):
+    saved: int

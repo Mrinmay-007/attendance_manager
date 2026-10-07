@@ -1,13 +1,27 @@
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException #type: ignore
+from sqlalchemy.exc import IntegrityError #type: ignore
+from sqlalchemy.orm import Session #type: ignore
 
 # from .. import models, schemas, auth
 # from ..database import get_db
 from ...models import models
 from ...schemas import schemas
 from ...authentication import auth
+from ...cache import reference_cache
+
+# def _commit(db: Session, obj):
+#     db.add(obj)
+#     try:
+#         db.commit()
+#     except IntegrityError as e:
+#         db.rollback()
+#         raise HTTPException(status_code=400, detail=f"Constraint violated: {e.orig}")
+#     db.refresh(obj)
+#     return obj
+
+
+
 
 def _commit(db: Session, obj):
     db.add(obj)
@@ -16,9 +30,9 @@ def _commit(db: Session, obj):
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Constraint violated: {e.orig}")
+    reference_cache.clear()   # new
     db.refresh(obj)
     return obj
-
 
 def _require_department(db: Session, dept_id: int, college_id: int):
     department = (
@@ -35,3 +49,4 @@ def _require_department(db: Session, dept_id: int, college_id: int):
             detail="College admins can only access departments in their own college",
         )
     return department
+

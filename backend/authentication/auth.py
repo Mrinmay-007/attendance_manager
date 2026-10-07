@@ -2,12 +2,12 @@ import datetime as dt
 import hashlib
 import os
 
-import bcrypt 
-from dotenv import load_dotenv
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from sqlalchemy.orm import Session
+import bcrypt #type: ignore
+from dotenv import load_dotenv #type: ignore
+from fastapi import Depends, HTTPException, status #type: ignore
+from fastapi.security import OAuth2PasswordBearer #type: ignore
+from jose import JWTError, jwt #type: ignore
+from sqlalchemy.orm import Session #type: ignore
 
 from ..dependency import get_db
 from ..models import models
@@ -78,3 +78,49 @@ def require_role(*allowed_roles: models.RoleEnum):
         return current_user
 
     return checker
+
+
+def _decode(token: str) -> dict:
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+def current_teacher_id(
+    token: str = Depends(oauth2_scheme),
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> int:
+    teacher_id = _decode(token).get("tid")
+    if teacher_id is None:
+        # Token issued before this change: fall back to the database.
+        teacher_id = (
+            db.query(models.Teacher.teacher_id)
+            .filter(models.Teacher.user_id == user.user_id)
+            .scalar()
+        )
+    if teacher_id is None:
+        raise HTTPException(404, "No teacher profile linked to this account")
+    return teacher_id
+
+
+def current_student_id(
+    token: str = Depends(oauth2_scheme),
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> int:
+    student_id = _decode(token).get("sid")
+    if student_id is None:
+        student_id = (
+            db.query(models.Student.student_id)
+            .filter(models.Student.user_id == user.user_id)
+            .scalar()
+        )
+    if student_id is None:
+        raise HTTPException(404, "No student profile linked to this account")
+    return student_id
