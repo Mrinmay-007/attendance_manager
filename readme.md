@@ -186,20 +186,20 @@ Key constraints:
 
 ```mermaid
 flowchart TD
-    APP[App.jsx<br/>React Router] --> LOGIN[/ Login]
-    APP --> PR[ProtectedRoute<br/>checks token + role]
-    PR --> ADMIN[/admin/* Admin]
-    PR --> TEACH[/teacher/* Faculty]
-    PR --> STUD[/student/* Student]
-    ADMIN --> RP[RolePortal<br/>role prop]
+    APP["App.jsx<br/>React Router"] --> LOGIN["Login page<br/>route: /"]
+    APP --> PR["ProtectedRoute<br/>checks token + role"]
+    PR --> ADMIN["Admin page<br/>route: /admin/*"]
+    PR --> TEACH["Faculty page<br/>route: /teacher/*"]
+    PR --> STUD["Student page<br/>route: /student/*"]
+    ADMIN --> RP["RolePortal<br/>role prop"]
     TEACH --> RP
     STUD --> RP
-    RP --> DT[DataTable<br/>list, edit, delete]
-    RP --> CF[CreateForm<br/>admin create forms]
-    RP --> AF[AttendanceForm<br/>teacher marks attendance]
-    RP --> TH[TeacherAttendanceHistory]
-    RP --> SD[StudentAttendanceDetails]
-    RP --> API[api.jsx<br/>apiFetch wrapper]
+    RP --> DT["DataTable<br/>list, edit, delete"]
+    RP --> CF["CreateForm<br/>admin create forms"]
+    RP --> AF["AttendanceForm<br/>teacher marks attendance"]
+    RP --> TH["TeacherAttendanceHistory"]
+    RP --> SD["StudentAttendanceDetails"]
+    RP --> API["api.jsx<br/>apiFetch wrapper"]
 ```
 
 One `RolePortal` component renders all three dashboards. The sidebar items, endpoints and form fields for each role come from `RolePortal/constants.js`, so adding a new admin resource is mostly a config change.
